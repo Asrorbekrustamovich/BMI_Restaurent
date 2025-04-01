@@ -1,0 +1,226 @@
+from rest_framework import generics, mixins, status
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.views import APIView
+from django.shortcuts import get_object_or_404
+from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.authtoken.models import Token
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.views import TokenObtainPairView
+from .models import Role, User, product_type, Product, OrderProduct, Status, Order
+from .serializers import (
+    RoleSerializer, UserSerializer, ProductTypeSerializer,
+    ProductSerializer, OrderProductSerializer, StatusSerializer, OrderSerializer
+)
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+from .serializers import PasswordChangeSerializer
+from django.contrib.auth import update_session_auth_hash
+class RoleListCreateView(generics.ListCreateAPIView):
+    queryset = Role.objects.all()
+    serializer_class = RoleSerializer
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+class RoleRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Role.objects.all()
+    serializer_class = RoleSerializer
+    permission_classes = [IsAdminUser,IsAuthenticated]
+
+class UserListCreateView(generics.ListCreateAPIView):
+    queryset = User.objects.all().select_related('role')
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated,IsAdminUser]
+
+class UserRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = User.objects.all().select_related('role')
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated,IsAdminUser ]
+
+class CurrentUserView(generics.RetrieveAPIView):
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
+
+class ChangePasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request, *args, **kwargs):
+        user = request.user
+        serializer = PasswordChangeSerializer(data=request.data, context={'request': request})
+        
+        if serializer.is_valid():
+            # Set new password
+            user.set_password(serializer.validated_data['new_password'])
+            user.save()
+            
+            # Update session to prevent logout
+            update_session_auth_hash(request, user)
+            
+            return Response({"status": "password changed"})
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class ProductTypeListCreateView(generics.ListCreateAPIView):
+    queryset = product_type.objects.all()
+    serializer_class = ProductTypeSerializer
+    permission_classes = [IsAuthenticated,IsAdminUser]
+
+class ProductTypeRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = product_type.objects.all()
+    serializer_class = ProductTypeSerializer
+    permission_classes = [IsAuthenticated,IsAdminUser   ]
+
+class ProductListCreateView(generics.ListCreateAPIView):
+    queryset = Product.objects.all().select_related('type')
+    serializer_class = ProductSerializer
+    permission_classes = [IsAuthenticated,IsAdminUser]
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        product_type = self.request.query_params.get('type')
+        if product_type:
+            queryset = queryset.filter(type_id=product_type)
+        return queryset
+
+class ProductRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Product.objects.all().select_related('type')
+    serializer_class = ProductSerializer
+    permission_classes = [IsAuthenticated,IsAdminUser]
+
+class OrderProductListCreateView(generics.ListCreateAPIView):
+    queryset = OrderProduct.objects.all().select_related('product')
+    serializer_class = OrderProductSerializer
+    permission_classes = [IsAuthenticated]
+
+class OrderProductRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = OrderProduct.objects.all().select_related('product')
+    serializer_class = OrderProductSerializer
+    permission_classes = [IsAuthenticated]
+
+class StatusListCreateView(generics.ListCreateAPIView):
+    queryset = Status.objects.all()
+    serializer_class = StatusSerializer
+    permission_classes = [IsAuthenticated]
+
+class StatusRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Status.objects.all()
+    serializer_class = StatusSerializer
+    permission_classes = [IsAuthenticated]
+
+class OrderListCreateView(generics.ListCreateAPIView):
+    queryset = Order.objects.all().select_related('status').prefetch_related(
+        'orderitems', 'orderitems__product'
+    ).order_by('-id')
+    serializer_class = OrderSerializer
+    # permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        table_number = self.request.query_params.get('table')
+        status_id = self.request.query_params.get('status')
+        
+        if table_number:
+            queryset = queryset.filter(table_number=table_number)
+        if status_id:
+            queryset = queryset.filter(status_id=status_id)
+            
+        if not self.request.user.is_superuser and hasattr(self.request.user, 'role'):
+            if self.request.user.role.name == 'Waiter':
+                queryset = queryset.filter(waiter=self.request.user)
+                
+        return queryset
+    
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        order = serializer.save()
+        
+        order_items = []
+        for item_data in request.data.get('orderitems', []):
+            product = get_object_or_404(Product, pk=item_data['product_id'])
+            order_item = OrderProduct.objects.create(
+                product=product,
+                quantity=item_data['quantity'],
+                price_at_order=product.price
+            )
+            order_items.append(order_item)
+        
+        order.orderitems.set(order_items)
+        return Response(
+            OrderSerializer(order, context=self.get_serializer_context()).data,
+            status=status.HTTP_201_CREATED
+        )
+
+class OrderRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Order.objects.all().select_related('status').prefetch_related(
+        'orderitems', 'orderitems__product'
+    )
+    serializer_class = OrderSerializer
+    permission_classes = [IsAuthenticated]
+
+class ChangeOrderStatusView(generics.UpdateAPIView):
+    queryset = Order.objects.all()
+    serializer_class = OrderSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def update(self, request, *args, **kwargs):
+        order = self.get_object()
+        new_status_id = request.data.get('status_id')
+        
+        if not new_status_id:
+            return Response(
+                {'error': 'status_id is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            new_status = Status.objects.get(pk=new_status_id)
+        except status.DoesNotExist:
+            return Response(
+                {'error': 'Invalid status_id'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        order.status = new_status
+        order.save()
+        return Response(self.get_serializer(order).data)
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)  # Get default token
+        
+        # Add custom claims (role_id will be in the access token)
+        # token['user_id'] = user.id
+        token['role_id'] = user.role.id if user.role else None
+        
+        return token
+class LoginView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
+
+from .permissions import IsStaff  # Make sure you have this import
+
+class Status1OrdersView(generics.ListAPIView):
+    serializer_class = OrderSerializer
+    permission_classes = [IsAuthenticated]  # Added IsStaff permission
+    
+    def get_queryset(self):
+        return Order.objects.filter(status_id=1).select_related('status').prefetch_related(
+            'orderitems', 'orderitems__product'
+        ).order_by('-id')
+
+class Status2OrdersView(generics.ListAPIView):
+    serializer_class = OrderSerializer
+    permission_classes = [IsAuthenticated]  # Added IsStaff permission
+    
+    def get_queryset(self):
+        return Order.objects.filter(status_id=2).select_related('status').prefetch_related(
+            'orderitems', 'orderitems__product'
+        ).order_by('-id')
+
+class Status3OrdersView(generics.ListAPIView):
+    serializer_class = OrderSerializer
+    permission_classes = [IsAuthenticated]  # Added IsStaff permission
+    
+    def get_queryset(self):
+        return Order.objects.filter(status_id=3).select_related('status').prefetch_related(
+            'orderitems', 'orderitems__product'
+        ).order_by('-id')
