@@ -1,65 +1,10 @@
 from django.contrib import admin
-from .models import Role, User, product_type, Product, OrderProduct, Status, Order
-from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-# Role modelini admin panelga qo'shish
-@admin.register(Role)
-class RoleAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name')
-    search_fields = ('name',)
-    ordering = ('-id',)
-
-# User modelini admin panelga qo'shish
-@admin.register(User)
-class UserAdmin(BaseUserAdmin):
-    list_display = ('id', 'username', 'email', 'phone', 'role', 'is_available')
-    list_filter = ('role', 'is_available')
-    search_fields = ('username', 'email', 'phone')
-    ordering = ('-id',)
-
-    fieldsets = (
-        (None, {'fields': ('username', 'email', 'password')}),
-        ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
-        ('Additional Info', {'fields': ('phone', 'role', 'is_available')}),
-    )
-
-    add_fieldsets = (
-        (None, {
-            'classes': ('wide',),
-            'fields': ('username', 'email', 'phone', 'role', 'password1', 'password2'),
-        }),
-    )
-@admin.register(product_type)
-class ProductTypeAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name')
-    search_fields = ('name',)
-    ordering = ('-id',)
-
-# Product modelini admin panelga qo'shish
-@admin.register(Product)
-class ProductAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'type', 'price')
-    list_filter = ('type',)
-    search_fields = ('name', 'description')
-    ordering = ('-id',)
-
-# OrderProduct modelini admin panelga qo'shish
-@admin.register(OrderProduct)
-class OrderProductAdmin(admin.ModelAdmin):
-    list_display = ('id', 'product', 'quantity', 'price_at_order', 'subtotal')
-    search_fields = ('product__name',)
-    ordering = ('-id',)
-
-# Status modelini admin panelga qo'shish
-@admin.register(Status)
-class StatusAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name')
-    search_fields = ('name',)
-    ordering = ('-id',)
-
-# Order modelini admin panelga qo'shish
-@admin.register(Order)
-class OrderAdmin(admin.ModelAdmin):
-    list_display = ('id', 'table_number', 'status', 'order_time', 'total_price')
-    list_filter = ('status',)
-    search_fields = ('table_number',)
-    ordering = ('-id',)
+from django.utils.html import format_html
+from app.models import *
+admin.site.register(Role)
+admin.site.register(User)
+admin.site.register(product_type)
+admin.site.register(Product)
+admin.site.register(OrderProduct)
+admin.site.register(Status)
+admin.site.register(Order)
