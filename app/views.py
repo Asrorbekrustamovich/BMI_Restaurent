@@ -75,29 +75,39 @@ class ProductTypeRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView
 User = get_user_model()
 
 class StaffCreateRetrieveView(generics.ListCreateAPIView):
-    """
-    Admins can create staff users (Role ID = 2).
-    Any authenticated user can view the staff list.
-    """
-    queryset = User.objects.filter(role__id=2)  # Filter only Staff users
+    queryset = User.objects.filter(role__id=2)
     serializer_class = UserSerializer
 
     def get_permissions(self):
-        if self.request.method == "POST":
-            return [permissions.IsAdminUser()]  # Only Admins can create staff
-        return [permissions.IsAuthenticated()]  # Any user can view staff list
+        """
+        Admins can create staff users (POST)
+        Any authenticated user can view staff list (GET)
+        """
+        if self.request.method == 'POST':
+            return [permissions.IsAdminUser()]
+        return [permissions.IsAuthenticated()]
 
     def perform_create(self, serializer):
-        role = Role.objects.get(id=2)  # Assign Staff role (ID=2)
-        serializer.save(role=role, is_staff=True)  # Ensure user is marked as staff
+        """Automatically sets role=2 and handles password hashing"""
+        role = Role.objects.get(id=2)
+        password = serializer.validated_data.get('password')
+        user = serializer.save(role=role, is_staff=True)
+        if password:
+            user.set_password(password)
+            user.save()
 
 class StaffUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
-    """
-    Allows Admins to update or delete a specific staff user by ID.
-    """
-    queryset = User.objects.filter(role__id=2)  # Ensure only Staff users are updated
+    queryset = User.objects.filter(role__id=2)
     serializer_class = UserSerializer
-    permission_classes = [permissions.IsAdminUser]  # Only Admins can modify staff
+    permission_classes = [permissions.IsAdminUser]
+
+    def perform_update(self, serializer):
+        """Maintains role=2 and handles password hashing"""
+        password = serializer.validated_data.get('password')
+        user = serializer.save()
+        if password:
+            user.set_password(password)
+            user.save()
 
 class ProductListCreateView(generics.ListCreateAPIView):
     queryset = Product.objects.all().select_related('type')
