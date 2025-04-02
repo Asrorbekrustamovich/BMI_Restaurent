@@ -1,6 +1,6 @@
 from rest_framework import generics, mixins, status
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.permissions import IsAuthenticated, IsAdminUser,AllowAny
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
 from rest_framework.authtoken.views import ObtainAuthToken
@@ -71,14 +71,19 @@ class ProductTypeRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView
 class ProductListCreateView(generics.ListCreateAPIView):
     queryset = Product.objects.all().select_related('type')
     serializer_class = ProductSerializer
-    permission_classes = [IsAuthenticated,IsAdminUser]
-    
+
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [IsAuthenticated(), IsAdminUser()]  # Only admins can create
+        return [AllowAny()]  # Anyone can view
+
     def get_queryset(self):
         queryset = super().get_queryset()
         product_type = self.request.query_params.get('type')
         if product_type:
             queryset = queryset.filter(type_id=product_type)
         return queryset
+
 
 class ProductRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Product.objects.all().select_related('type')
