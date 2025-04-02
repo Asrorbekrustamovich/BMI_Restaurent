@@ -16,6 +16,10 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from .serializers import PasswordChangeSerializer
 from django.contrib.auth import update_session_auth_hash
+from rest_framework import generics, permissions
+from django.contrib.auth import get_user_model
+from app.models import Role
+from app.serializers import UserSerializer
 class RoleListCreateView(generics.ListCreateAPIView):
     queryset = Role.objects.all()
     serializer_class = RoleSerializer
@@ -36,15 +40,6 @@ class UserRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated,IsAdminUser ]
 
-class Role2UserListCreateView(generics.ListCreateAPIView):
-    queryset = User.objects.filter(role_id=2).select_related('role')
-    serializer_class = UserSerializer
-    permission_classes = [IsAuthenticated, IsAdminUser] 
-
-class Role2UserRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = User.objects.filter(role_id=2).select_related('role')
-    serializer_class = UserSerializer
-    permission_classes = [IsAuthenticated, IsAdminUser]
 
 class CurrentUserView(generics.RetrieveAPIView):
     serializer_class = UserSerializer
@@ -77,6 +72,32 @@ class ProductTypeRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView
     queryset = product_type.objects.all()
     serializer_class = ProductTypeSerializer
     permission_classes = [IsAuthenticated,IsAdminUser   ]
+User = get_user_model()
+
+class StaffCreateRetrieveView(generics.ListCreateAPIView):
+    """
+    Admins can create staff users (Role ID = 2).
+    Any authenticated user can view the staff list.
+    """
+    queryset = User.objects.filter(role__id=2)  # Filter only Staff users
+    serializer_class = UserSerializer
+
+    def get_permissions(self):
+        if self.request.method == "POST":
+            return [permissions.IsAdminUser()]  # Only Admins can create staff
+        return [permissions.IsAuthenticated()]  # Any user can view staff list
+
+    def perform_create(self, serializer):
+        role = Role.objects.get(id=2)  # Assign Staff role (ID=2)
+        serializer.save(role=role, is_staff=True)  # Ensure user is marked as staff
+
+class StaffUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    Allows Admins to update or delete a specific staff user by ID.
+    """
+    queryset = User.objects.filter(role__id=2)  # Ensure only Staff users are updated
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAdminUser]  # Only Admins can modify staff
 
 class ProductListCreateView(generics.ListCreateAPIView):
     queryset = Product.objects.all().select_related('type')

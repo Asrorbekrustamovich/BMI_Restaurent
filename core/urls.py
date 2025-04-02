@@ -9,7 +9,7 @@ from app.views import (
     ProductListCreateView, ProductRetrieveUpdateDestroyView,
     OrderProductListCreateView, OrderProductRetrieveUpdateDestroyView,
     StatusListCreateView, StatusRetrieveUpdateDestroyView,
-    OrderListCreateView, OrderRetrieveUpdateDestroyView, ChangeOrderStatusView,LoginView,ChangePasswordView,Role2UserListCreateView,Role2UserRetrieveUpdateDestroyView
+    OrderListCreateView, OrderRetrieveUpdateDestroyView, ChangeOrderStatusView,LoginView,ChangePasswordView,StaffCreateRetrieveView,StaffUpdateDeleteView
 )
 
 urlpatterns = [
@@ -23,8 +23,8 @@ urlpatterns = [
     path('users/<int:pk>/', UserRetrieveUpdateDestroyView.as_view(), name='user-detail'),
     path('users/me/', CurrentUserView.as_view(), name='current-user'),
     path('me/change-password/', ChangePasswordView.as_view(), name='change-password'),
-    path('staffs/', Role2UserListCreateView.as_view(), name='role-2-users-list'),
-    path('staffs/<int:pk>/', Role2UserRetrieveUpdateDestroyView.as_view(), name='role-2-users-detail'),
+    path('staffs/', StaffCreateRetrieveView.as_view(), name='role-2-users-list'),
+    path('staffs/<int:pk>/', StaffUpdateDeleteView.as_view(), name='role-2-users-detail'),
     # Product Type URLs
     path('product-types/', ProductTypeListCreateView.as_view(), name='product-type-list-create'),
     path('product-types/<int:pk>/', ProductTypeRetrieveUpdateDestroyView.as_view(), name='product-type-detail'),
