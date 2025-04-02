@@ -14,56 +14,51 @@ class Role(models.Model):
         verbose_name_plural = 'Roles'
 
 class UserManager(BaseUserManager):
-    def create_user(self, email, username, password=None, **extra_fields):
-        if not email:
-            raise ValueError('The Email must be set')
+    def create_user(self, username, password=None, **extra_fields):
         if not username:
             raise ValueError('The Username must be set')
-        
-        email = self.normalize_email(email)
-        user = self.model(email=email, username=username, **extra_fields)
+
+        user = self.model(username=username, **extra_fields)  # No email field
         user.set_password(password)
         user.save()
         return user
-    
-    def create_superuser(self, email, username, password, **extra_fields):
+
+    def create_superuser(self, username, password, **extra_fields):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
         extra_fields.setdefault('is_active', True)
-        
+
         if extra_fields.get('is_staff') is not True:
             raise ValueError('Superuser must have is_staff=True.')
         if extra_fields.get('is_superuser') is not True:
             raise ValueError('Superuser must have is_superuser=True.')
-        
+
         # Get or create Admin role
         admin_role, _ = Role.objects.get_or_create(name='Admin')
         extra_fields.setdefault('role', admin_role)
-        
-        return self.create_user(email, username, password, **extra_fields)
+
+        return self.create_user(username, password, **extra_fields)
+
+
     
 class User(AbstractUser):
     groups = None
     user_permissions = None
     
-    phone = models.CharField(max_length=20, blank=True, null=True)
+    phone = models.CharField(max_length=20, blank=True, null=True)  # Optional phone number
     role = models.ForeignKey(
         Role,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='users'
+        on_delete=models.CASCADE,
+        related_name='users',
+        blank=False,  # Role is required
+        null=False
     )
     is_available = models.BooleanField(default=True)
     shift_start = models.TimeField(blank=True, null=True)
     shift_end = models.TimeField(blank=True, null=True)
     
     objects = UserManager()
-    
-    # Set email as the USERNAME_FIELD if you want email-based authentication
-    # USERNAME_FIELD = 'email'
-    # REQUIRED_FIELDS = ['username']
-    
+
     def __str__(self):
         return f"{self.get_full_name() or self.username} ({self.role.name if self.role else 'No Role'})"
     
@@ -71,6 +66,8 @@ class User(AbstractUser):
         ordering = ['-id']
         verbose_name = 'User'
         verbose_name_plural = 'Users'
+
+
 
 class product_type(models.Model):
     name = models.CharField(max_length=50, unique=True)
