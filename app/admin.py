@@ -16,13 +16,18 @@ class UserAdmin(BaseUserAdmin):
     search_fields = ('username', 'email', 'phone')
     ordering = ('-id',)
 
-    # Parolni avtomatik hash qilish
-    def save_model(self, request, obj, form, change):
-        if change and 'password' in form.changed_data:
-            obj.set_password(obj.password)
-        super().save_model(request, obj, form, change)
+    fieldsets = (
+        (None, {'fields': ('username', 'email', 'password')}),
+        ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
+        ('Additional Info', {'fields': ('phone', 'role', 'is_available')}),
+    )
 
-# Product Type modelini admin panelga qo'shish
+    add_fieldsets = (
+        (None, {
+            'classes': ('wide',),
+            'fields': ('username', 'email', 'phone', 'role', 'password1', 'password2'),
+        }),
+    )
 @admin.register(product_type)
 class ProductTypeAdmin(admin.ModelAdmin):
     list_display = ('id', 'name')
