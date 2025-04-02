@@ -14,6 +14,7 @@ from app.views import (
 
 urlpatterns = [
     # Role URLs
+    path('admin/', admin.site.urls), 
     path('roles/', RoleListCreateView.as_view(), name='role-list-create'),
     path('roles/<int:pk>/', RoleRetrieveUpdateDestroyView.as_view(), name='role-detail'),
 
