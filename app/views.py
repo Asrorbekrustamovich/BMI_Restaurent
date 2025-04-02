@@ -36,6 +36,16 @@ class UserRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated,IsAdminUser ]
 
+class Role2UserListCreateView(generics.ListCreateAPIView):
+    queryset = User.objects.filter(role_id=2).select_related('role')
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated, IsAdminUser] 
+
+class Role2UserRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = User.objects.filter(role_id=2).select_related('role')
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
 class CurrentUserView(generics.RetrieveAPIView):
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
