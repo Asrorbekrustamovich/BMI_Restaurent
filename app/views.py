@@ -154,7 +154,6 @@ class OrderListCreateView(generics.ListCreateAPIView):
         'orderitems', 'orderitems__product'
     ).order_by('-id')
     serializer_class = OrderSerializer
-    # permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -166,17 +165,19 @@ class OrderListCreateView(generics.ListCreateAPIView):
         if status_id:
             queryset = queryset.filter(status_id=status_id)
             
-        if not self.request.user.is_superuser and hasattr(self.request.user, 'role'):
-            if self.request.user.role.name == 'Waiter':
-                queryset = queryset.filter(waiter=self.request.user)
-                
         return queryset
     
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        order = serializer.save()
         
+        # First create the order
+        order = Order.objects.create(
+            table_number=serializer.validated_data['table_number'],
+            status=serializer.validated_data['status']
+        )
+        
+        # Then create and associate order items
         order_items = []
         for item_data in request.data.get('orderitems', []):
             product = get_object_or_404(Product, pk=item_data['product_id'])
@@ -187,7 +188,10 @@ class OrderListCreateView(generics.ListCreateAPIView):
             )
             order_items.append(order_item)
         
-        order.orderitems.set(order_items)
+        # Add items to order using many-to-many relationship
+        order.orderitems.add(*order_items)
+        
+        # Return the complete order data
         return Response(
             OrderSerializer(order, context=self.get_serializer_context()).data,
             status=status.HTTP_201_CREATED
