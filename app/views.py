@@ -134,12 +134,10 @@ class ProductRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
 class OrderProductListCreateView(generics.ListCreateAPIView):
     queryset = OrderProduct.objects.all().select_related('product')
     serializer_class = OrderProductSerializer
-    permission_classes = [IsAuthenticated]
 
 class OrderProductRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     queryset = OrderProduct.objects.all().select_related('product')
     serializer_class = OrderProductSerializer
-    permission_classes = [IsAuthenticated]
 
 class StatusListCreateView(generics.ListCreateAPIView):
     queryset = Status.objects.all()
@@ -200,7 +198,6 @@ class OrderRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
         'orderitems', 'orderitems__product'
     )
     serializer_class = OrderSerializer
-    permission_classes = [IsAuthenticated]
 
 class ChangeOrderStatusView(generics.UpdateAPIView):
     queryset = Order.objects.all()
