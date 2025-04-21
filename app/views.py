@@ -279,3 +279,11 @@ class Status3OrdersView(generics.ListAPIView):
         return Order.objects.filter(status_id=3).select_related('status').prefetch_related(
             'orderitems', 'orderitems__product'
         ).order_by('-id')
+    
+class DeleteAllOrdersView(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        Order.objects.all().delete()
+        OrderProduct.objects.all().delete()
+        return Response({"detail": "All orders and order products have been deleted."}, status=status.HTTP_200_OK)
