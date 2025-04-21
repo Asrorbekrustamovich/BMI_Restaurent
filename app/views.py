@@ -70,7 +70,7 @@ class ProductTypeListCreateView(generics.ListCreateAPIView):
     def get_permissions(self):
         if self.request.method == 'GET':
             # Allow authenticated users who are either admins or staff
-            return [IsAuthenticated(), IsAdminUser(), IsStaff()]
+            return [IsAuthenticated()]
         elif self.request.method == 'POST':
             # Only allow admins to create
             return [IsAuthenticated(), IsAdminUser()]
