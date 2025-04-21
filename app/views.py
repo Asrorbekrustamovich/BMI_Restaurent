@@ -66,12 +66,13 @@ class ChangePasswordView(APIView):
 class ProductTypeListCreateView(generics.ListCreateAPIView):
     queryset = product_type.objects.all()
     serializer_class = ProductTypeSerializer
+
     def get_permissions(self):
-        # Permissions for GET requests
         if self.request.method == 'GET':
-            return [IsAuthenticated(), IsAdminUser() | IsStaff()]
-        # Permissions for POST requests (only Admin)
+            # Allow authenticated users who are either admins or staff
+            return [IsAuthenticated(), IsAdminUser(), IsStaff()]
         elif self.request.method == 'POST':
+            # Only allow admins to create
             return [IsAuthenticated(), IsAdminUser()]
         return super().get_permissions()
 
