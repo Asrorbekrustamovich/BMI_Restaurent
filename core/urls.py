@@ -45,7 +45,7 @@ urlpatterns = [
     path('orders/', OrderListCreateView.as_view(), name='order-list-create'),
     path('orders/<int:pk>/', OrderRetrieveUpdateDestroyView.as_view(), name='order-detail'),
     path('orders/<int:pk>/change-status/', ChangeOrderStatusView.as_view(), name='order-change-status'),
-    path('admin/delete-orders/', DeleteAllOrdersView.as_view(), name='delete_all_orders'),
+    path('all/delete-orders/', DeleteAllOrdersView.as_view(), name='delete_all_orders'),
     path('login/', LoginView.as_view(), name='login'),
 ]
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
